@@ -6,8 +6,17 @@ const app = express()
 app.use(express.json())
 app.use(cookieParser())
 
-import { authRouter } from "./routes/auth.routes.js"
+/*
+    - Routes required
+*/
 
-app.use("/api/auth",authRouter)
+import { authRouter } from "./routes/auth.routes.js"
+import { accountRouter } from "./routes/account.routes.js"
+
+/*
+    - Use Routes 
+*/
+app.use("/api/auth", authRouter)
+app.use("/api/accounts", accountRouter)
 
 export default app
