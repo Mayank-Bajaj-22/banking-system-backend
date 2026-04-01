@@ -1,0 +1,87 @@
+/**
+ * - Create a new transaction
+ * THE 10-STEP TRANSFER FLOW:
+    * 1. Validate request
+    * 2. Validate idempotency key
+    * 3. Check account status
+    * 4. Derive sender balance from ledger
+    * 5. Create transaction (PENDING)
+    * 6. Create DEBIT ledger entry
+    * 7. Create CREDIT ledger entry
+    * 8. Mark transaction COMPLETED
+    * 9. Commit MongoDB session
+    * 10. Send email notification
+ */
+
+import { Account } from "../models/account.model.js";
+import ApiError from "../utils/ApiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
+
+const createTransaction = asyncHandler(async(req, res) => {
+
+    // validate request
+
+    const { fromAccount, toAccount, amount, idempotencyKey } = req.body
+
+    if (!fromAccount?.trim() || !toAccount?.trim() || !amount?.trim() || !idempotencyKey?.trim()) {
+        throw new ApiError(400,"All fields(fromAccount, toAccount, amount and idempotencyKey) are required!")
+    }
+
+    const loggedInUser = req.user
+
+    if (!loggedInUser) {
+        throw new ApiError(400,"User nor logged in!!")
+    }
+
+    const fromUserAccount = await Account.findOne({
+        _id: fromAccount,
+        user: loggedInUser._id
+    })
+
+    if (!fromUserAccount){
+        throw new ApiError(400,"fromAccount does not belong to user!!")
+    }
+
+    const toUserAccount = await Account.findOne({
+        _id: toAccount
+    })
+
+    if (!toUserAccount){
+        throw new ApiError(400,"Invalid toAccount!!")
+    }
+
+    // validate idempotency key 
+
+    const existingTransaction = await Transaction.findOne({ idempotencyKey })
+
+    if (existingTransaction){
+        switch(existingTransaction.status){
+            case "COMPLETED":
+                return res.status(200).json(
+                new ApiResponse(200,{transaction: existingTransaction},"Transaction already processed")
+            )
+            case "PENDING":
+                return res.status(200).json(
+                new ApiResponse(200,{transactionId: existingTransaction._id},"Transaction still processing")
+            )
+            case "FAILED":
+                return res.status(500).json(
+                new ApiResponse(500,{transactionId: existingTransaction._id},"Transaction already failed")
+            )
+            case "REVERSED":
+                return res.status(500).json(
+                new ApiResponse(500,{transactionId: existingTransaction._id},"Transaction reversed")
+            )
+        }
+    }
+
+    // check account status
+
+    if (fromUserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE") {
+        throw new ApiError(400, "Either fromAccount or toAccount is not ACTIVE!!")
+    }
+
+    // derive sender's account balance
+})
+
+export { createTransaction }
