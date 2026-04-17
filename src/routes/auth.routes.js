@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { loginController, userRegisterController, refreshAccessToken } from "../controllers/auth.controller.js";
-
+import { loginController, userRegisterController, refreshAccessToken, logOut } from "../controllers/auth.controller.js";
+import { verifyjwt } from "../middlewares/auth.middleware.js"
 const authRouter = Router();
 
 /* POST /api/auth/register */
@@ -15,5 +15,10 @@ authRouter.route("/log-in").post(loginController)
 */
 
 authRouter.route("/refresh-token").post(refreshAccessToken)
+
+/* 
+- POST /api/auth/log-out 
+*/
+authRouter.route("/log-out").post(verifyjwt, logOut)
 
 export { authRouter }
