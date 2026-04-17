@@ -4,6 +4,8 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { genAccessAndRefreshTokens } from "../utils/generateToken.js";
+import jwt from "jsonwebtoken"
+import bcrypt from "bcrypt"
 
 /*
 - user register controller
@@ -117,4 +119,61 @@ const loginController = asyncHandler(async(req, res) => {
     ))
 })
 
-export { userRegisterController, loginController }
+
+/* 
+- controller for refresh token rotation
+- POST /api/auth/refresh-token 
+*/
+
+const refreshAccessToken = asyncHandler(async(req, res) => {
+    const fetchedRefreshToken = req.cookies?.refreshToken || req.header("Authorization")?.replace("Bearer ", "")
+
+    if (!fetchedRefreshToken) {
+        throw new ApiError(401, "Unauthorised request!")
+    }
+
+    try {
+        const decodedPayload = jwt.verify(fetchedRefreshToken, process.env.REFRESH_TOKEN_SECRET)
+
+        if (!decodedPayload) {
+            throw new ApiError(400, "Invalid refresh token")
+        }
+
+        const user = await User.findById(decodedPayload._id).select("+refreshToken")
+
+        if (!user) {
+            throw new ApiError(400, "Invalid refresh token")
+        }
+
+        const validToken = await bcrypt.compare(
+            fetchedRefreshToken,
+            user.refreshToken
+        )
+
+        if (!validToken){
+            throw new ApiError(400, "Refresh token expired")
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: true,
+            sameSite: "strict",
+            maxAge: 7*24*60*60*1000
+        }
+
+        const { accessToken, refreshToken:newRefreshToken } = await genAccessAndRefreshTokens(user._id)
+
+        return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", newRefreshToken, options)
+        .json(
+            new ApiResponse(200, {accessToken, newRefreshToken},"Access token refreshed")
+        )
+
+    } catch (error) {
+        throw new ApiError(400, error?.message)
+    }
+})
+
+export { userRegisterController, loginController, refreshAccessToken }

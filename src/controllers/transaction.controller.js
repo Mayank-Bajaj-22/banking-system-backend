@@ -47,7 +47,7 @@ const createTransaction = asyncHandler(async(req, res) => {
     const loggedInUser = req.user
 
     if (!loggedInUser) {
-        throw new ApiError(400,"User not logged in!")
+        throw new ApiError(400, "User not logged in!")
     }
 
     const fromUserAccount = await Account.findOne({
@@ -56,7 +56,7 @@ const createTransaction = asyncHandler(async(req, res) => {
     })
 
     if (!fromUserAccount){
-        throw new ApiError(400,"fromAccount does not belong to user!")
+        throw new ApiError(400, "fromAccount does not belong to user!")
     }
 
     const toUserAccount = await Account.findOne({
