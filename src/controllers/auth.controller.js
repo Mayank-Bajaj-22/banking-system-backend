@@ -6,6 +6,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { genAccessAndRefreshTokens } from "../utils/generateToken.js";
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
+import { TokenBlacklist } from "../models/tokenBlacklist.model.js";
 
 /*
 - user register controller

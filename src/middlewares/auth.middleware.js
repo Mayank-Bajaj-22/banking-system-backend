@@ -56,4 +56,4 @@ const authorizeRoles = (...allowedRoles) => {
     }
 }
 
-export default { verifyjwt, authorizeRoles }
+export { verifyjwt, authorizeRoles }

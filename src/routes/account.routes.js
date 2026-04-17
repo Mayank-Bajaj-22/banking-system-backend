@@ -5,11 +5,11 @@ import { createAccountController, getUserAccounts, getAccountBalance } from "../
 const accountRouter = Router()
 
 /* 
-- POST /api/accounts 
+- POST /api/accounts/create-account
 - Protected route
 */
 
-accountRouter.route("/").post(verifyjwt, createAccountController)
+accountRouter.route("/create-account").post(verifyjwt, createAccountController)
 
 /*
 - GET /api/accounts/

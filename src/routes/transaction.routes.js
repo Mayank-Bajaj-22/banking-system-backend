@@ -6,11 +6,11 @@ import { transactionLimiter } from "../middlewares/rateLimiter.middleware.js";
 const transactionRouter = Router()
 
 /*
-- POST /api/transactions
+- POST /api/transactions/create-transaction
 - Create a new transaction
 */
 
-transactionRouter.route("/").post(verifyjwt, transactionLimiter , createTransaction)
+transactionRouter.route("/create-transaction").post(verifyjwt, transactionLimiter , createTransaction)
 
 /*
 - POST /api/transactions/system/initial-funds
