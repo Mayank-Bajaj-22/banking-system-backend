@@ -19,7 +19,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 const createTransaction = asyncHandler(async(req, res) => {
 
-    // validate request
+    // 1. validate request
 
     const { fromAccount, toAccount, amount, idempotencyKey } = req.body
 
@@ -50,7 +50,7 @@ const createTransaction = asyncHandler(async(req, res) => {
         throw new ApiError(400,"Invalid toAccount!!")
     }
 
-    // validate idempotency key 
+    // 2. validate idempotency key 
 
     const existingTransaction = await Transaction.findOne({ idempotencyKey })
 
@@ -75,13 +75,14 @@ const createTransaction = asyncHandler(async(req, res) => {
         }
     }
 
-    // check account status
+    // 3. check account status
 
     if (fromUserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE") {
         throw new ApiError(400, "Either fromAccount or toAccount is not ACTIVE!!")
     }
 
     // derive sender's account balance
+    
 })
 
 export { createTransaction }
