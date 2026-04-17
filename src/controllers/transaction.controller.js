@@ -23,7 +23,7 @@ import { transactionMail, transactionFaliureMail } from "../services/email.servi
 
 /*
 - transaction creation controller
-- POST /api/transactions/create-transaction
+- POST /api/transactions/
 */
 
 const createTransaction = asyncHandler(async(req, res) => {
@@ -164,6 +164,12 @@ const createTransaction = asyncHandler(async(req, res) => {
     .status(200)
     .json(new ApiResponse(200,{ transaction },"Transactin completed successfully"))
 })
+
+
+/*
+- controller for creating initial funds transaction from system user
+- POST /api/transactions/system/initial-funds
+*/
 
 const createInitialFundsTransaction = asyncHandler(async(req, res) => {
     const { toAccount, amount, idempotencyKey } = req.body;
