@@ -30,7 +30,8 @@ const userRegisterController = asyncHandler(async (req, res) => {
     const user = await User.create({
         name,
         email,
-        password
+        password,
+        role: "user"
     })
 
     await registrationMail(user.email, user.name)
@@ -64,7 +65,7 @@ const userRegisterController = asyncHandler(async (req, res) => {
     ))
 })
 
-export { userRegisterController }
+
 
 /*
 - user login controller
@@ -116,4 +117,4 @@ const loginController = asyncHandler(async(req, res) => {
     ))
 })
 
-export { loginController }
+export { userRegisterController, loginController }

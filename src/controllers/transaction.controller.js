@@ -32,7 +32,7 @@ const createTransaction = asyncHandler(async(req, res) => {
 
     const { fromAccount, toAccount, amount, idempotencyKey } = req.body
 
-    if (!fromAccount?.trim() || !toAccount?.trim() || !amount?.trim() || !idempotencyKey?.trim()) {
+    if (!fromAccount?.trim() || !toAccount?.trim() || !amount?.toString().trim() || !idempotencyKey?.trim()) {
         throw new ApiError(400, "All fields(fromAccount, toAccount, amount and idempotencyKey) are required!")
     }
 
@@ -113,8 +113,8 @@ const createTransaction = asyncHandler(async(req, res) => {
         // create transaction (PENDING default)
 
         transaction = await Transaction.create({
-            fromAccount,
-            toAccount,
+            fromAccount: fromUserAccount._id,
+            toAccount: toUserAccount._id,
             amount,
             idempotencyKey
         }, {session})
@@ -122,7 +122,7 @@ const createTransaction = asyncHandler(async(req, res) => {
         // create debit ledger
 
         const debitLedgerEntry = await Ledger.create({
-            account: fromAccount,
+            account: fromUserAccount._id,
             transaction: transaction._id,
             amount,
             type: "DEBIT"
@@ -131,7 +131,7 @@ const createTransaction = asyncHandler(async(req, res) => {
         // create credit ledger 
 
         const creditLedgerEntry = await Ledger.create({
-            account: toAccount,
+            account: toUserAccount._id,
             transaction: transaction._id,
             amount,
             type: "CREDIT"
@@ -154,7 +154,7 @@ const createTransaction = asyncHandler(async(req, res) => {
         await session.abortTransaction()
         session.endSession()
 
-        await transactionFailureMail(loggedInUser.email, loggedInUser.name, amount, toAccount)
+        await transactionFaliureMail(loggedInUser.email, loggedInUser.name, amount, toAccount)
         throw error
     }
 
@@ -162,7 +162,75 @@ const createTransaction = asyncHandler(async(req, res) => {
 
     return res
     .status(200)
-    .json(new ApiResponse(200,transaction,"Transactin completed successfully"))
+    .json(new ApiResponse(200,{ transaction },"Transactin completed successfully"))
 })
 
-export { createTransaction }
+const createInitialFundsTransaction = asyncHandler(async(req, res) => {
+    const { toAccount, amount, idempotencyKey } = req.body;
+
+    if (!toAccount?.trim() || !amount?.toString().trim() || !idempotencyKey?.trim()) {
+        throw new ApiError(400, "All fields(toAccount, amount and idempotencyKey) are required!")
+    }
+
+    const toUserAccount = await Account.findOne({_id: toAccount})
+
+    if (!toUserAccount){
+        throw new ApiError(400, "To user account invalid!")
+    }
+
+    const fromUserAccount = await Account.findOne(
+        { user:req.user?._id }
+    )
+
+    if (!fromUserAccount){
+        throw new ApiError(400, "System user account not found")
+    }
+
+    const session = await mongoose.startSession()
+    session.startTransaction()
+
+    try {
+        const transaction = new Transaction(
+            {
+                fromAccount: fromUserAccount._id,
+                toAccount: toUserAccount._id,
+                amount,
+                idempotencyKey,
+                status:"PENDING"
+            }
+        )
+
+        await transaction.save({ session })
+
+        const debitLedgerEntry = await Ledger.create([{
+            account: fromUserAccount._id,
+            transaction: transaction._id,
+            amount,
+            type:"DEBIT"
+        }],{ session })
+
+        const creditLedgerEntry = await Ledger.create([{
+            account: toUserAccount._id,
+            transaction: transaction._id,
+            amount,
+            type:"CREDIT"
+        }],{ session })
+
+        transaction.status = "COMPLETED"
+        const transactionData = await transaction.save({session})
+
+        await session.commitTransaction()
+        session.endSession()
+
+        return res
+        .status(200)
+        .json(new ApiResponse(200, {transaction:transactionData}, "Initial funds transaction completed successfully"))
+
+    } catch (error) {
+        await session.abortTransaction()
+        session.endSession()
+        throw error
+    }
+})
+
+export { createTransaction, createInitialFundsTransaction }

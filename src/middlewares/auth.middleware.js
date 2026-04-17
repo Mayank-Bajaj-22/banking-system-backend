@@ -34,4 +34,19 @@ const verifyjwt = asyncHandler(async(req, res, next) => {
     }
 })
 
-export default verifyjwt
+const authorizeRoles = (...allowedRoles) => {
+    return (req,res,next) => {
+        const loggedInUser = req.user
+        if(!loggedInUser){
+            throw new ApiError(401,"Unauthorised request!")
+        }
+
+        if(!allowedRoles.includes(loggedInUser.role)){
+            throw new ApiError(403,"Access denied!")
+        }
+
+        next()
+    }
+}
+
+export default { verifyjwt, authorizeRoles }
