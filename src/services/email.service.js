@@ -78,4 +78,4 @@ const transactionFaliureMail = async(to,name,amount,toAccount) => {
     await sendEmail(to, subject, text, html); 
 }
 
-export { registrationMail, transactionMail, transactionFaliureMail }
+export { transporter, sendEmail, registrationMail, transactionMail, transactionFaliureMail }
