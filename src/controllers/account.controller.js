@@ -2,6 +2,7 @@ import { Account } from "../models/account.model.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { redis } from "../utils/redis.js";
 
 /*
 - Account creation controller
@@ -57,6 +58,27 @@ const getAccountBalance = asyncHandler(async(req, res) => {
         throw new ApiError(400,"User not logged in")
     }
 
+    const cachedKey = `balance:${accountId}`
+
+    // 1. try cache first
+
+    const cachedBalance = await redis.get(cachedKey)
+    if (cachedBalance) {
+        console.log("CACHE HIT");
+        return res.status(200).json(new ApiResponse(
+            200,
+            {
+                accountId,
+                accountBalance: JSON.parse(cachedBalance)
+            },
+            "Account balance fetched (cache)"
+        ));
+    }
+
+    console.log("CACHE MISS");
+
+    // 2. fetch from DB
+
     const userAccount = await Account.findOne({ _id:accountId, user:req.user._id })
 
     if (!userAccount){
@@ -64,6 +86,10 @@ const getAccountBalance = asyncHandler(async(req, res) => {
     }
 
     const accountBalance = await userAccount.getBalance()
+
+    // 3. Store in cache (VERY SHORT TTL)
+
+    await redis.set(cacheKey, JSON.stringify(accountBalance), "EX", 15); // 15 sec
 
     return res
     .status(200)

@@ -200,6 +200,9 @@ const createTransaction = asyncHandler(async(req, res) => {
 
         await session.commitTransaction()
 
+        await redis.del(`balance:${fromUserAccount._id}`);
+        await redis.del(`balance:${toUserAccount._id}`);
+
     } catch (error) {
         await session.abortTransaction()
 
